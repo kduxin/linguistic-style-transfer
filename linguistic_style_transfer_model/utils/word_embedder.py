@@ -10,7 +10,7 @@ logger = logging.getLogger(global_config.logger_name)
 def add_word_vectors_to_embeddings(word_index, encoder_embedding_matrix, decoder_embedding_matrix,
                                    embedding_model_path):
     embedding_model = gensim.models.KeyedVectors.load_word2vec_format(
-        embedding_model_path, binary=True, unicode_errors='ignore')
+        embedding_model_path, binary=False, unicode_errors='ignore')
     logger.info("Embeddings loaded into memory")
 
     i = 0

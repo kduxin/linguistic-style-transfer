@@ -441,7 +441,7 @@ class AdversarialAutoencoder:
                 low=-0.05, high=0.05).astype(dtype=np.float32)
 
         sampled_content_embedding = np.random.normal(
-            size=(end_index - start_index, mconf.content_embedding_size)).astype(dtype=np.float32)
+            size=(end_index - start_index, mconf.content_embedding_size)).astype(dtype=np.float32) * 2
 
         bow_representations = data_processor.get_bow_representations(
             padded_sequences[start_index: end_index])
@@ -831,6 +831,44 @@ class AdversarialAutoencoder:
         dummy_sequences = np.zeros(shape=(data_size, global_config.max_sequence_length))
         dummy_oh_labels = np.zeros(shape=(data_size, num_labels))  # oh = one hot
         dummy_ts_lengths = np.zeros(shape=(data_size))  # ts = text sequence
+
+        for batch_number in range(num_batches):
+            (start_index, end_index) = self.get_batch_indices(
+                batch_number=batch_number, data_limit=data_size)
+
+            conditioning_embedding = np.tile(A=style_embedding, reps=(end_index - start_index, 1))
+
+            generated_sequences_batch, final_sequence_lengths_batch = \
+                self.run_batch(
+                    sess, start_index, end_index,
+                    [self.inference_output, self.final_sequence_lengths],
+                    dummy_sequences, dummy_oh_labels, dummy_ts_lengths,
+                    conditioning_embedding, False, True, style_kl_weight, content_kl_weight, current_epoch)
+
+            generated_sequences.extend(generated_sequences_batch)
+            final_sequence_lengths.extend(final_sequence_lengths_batch)
+
+        return generated_sequences, final_sequence_lengths
+
+
+    def generate_novel_sentences_initialized(self, sess, style_embedding, data_size, num_labels):
+
+        generated_sequences = list()
+        final_sequence_lengths = list()
+
+        num_batches = data_size // mconf.batch_size
+        if data_size % mconf.batch_size:
+            num_batches += 1
+
+        end_index = None
+        style_kl_weight = 0
+        content_kl_weight = 0
+        current_epoch = 0
+
+        dummy_sequences = np.zeros(shape=(data_size, global_config.max_sequence_length))
+        dummy_oh_labels = np.zeros(shape=(data_size, num_labels))  # oh = one hot
+        dummy_ts_lengths = np.zeros(shape=(data_size))  # ts = text sequence
+
 
         for batch_number in range(num_batches):
             (start_index, end_index) = self.get_batch_indices(
